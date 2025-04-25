@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gomoku - Two Player Strategy Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5dc;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        h1 {
+            color: #5a3921;
+            margin-bottom: 10px;
+        }
+        
+        .game-container {
+            margin-top: 20px;
+            background-color: #e6c88c;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 30px);
+            grid-template-rows: repeat(15, 30px);
+            gap: 1px;
+            background-color: #8b4513;
+            padding: 10px;
+            border: 2px solid #5a3921;
+        }
+        
+        .cell {
+            width: 30px;
+            height: 30px;
+            background-color: #e6c88c;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .cell:hover {
+            background-color: #d8b878;
+        }
+        
+        .cell::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        
+        .black-piece {
+            width: 26px;
+            height: 26px;
+            background-color: black;
+            border-radius: 50%;
+            z-index: 1;
+        }
+        
+        .white-piece {
+            width: 26px;
+            height: 26px;
+            background-color: white;
+            border-radius: 50%;
+            z-index: 1;
+        }
+        
+        .game-info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f8f8;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 470px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        
+        .player-turn {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .restart-btn {
+            background-color: #5a3921;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .restart-btn:hover {
+            background-color: #3a2414;
+        }
+        
+        .rules {
+            margin-top: 20px;
+            max-width: 500px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gomoku - Two Player Game</h1>
+    
+    <div class="game-container">
+        <div class="board" id="board"></div>
+    </div>
+    
+    <div class="game-info">
+        <div class="player-turn" id="player-turn">Black's turn</div>
+        <button class="restart-btn" id="restart-btn">Restart Game</button>
+    </div>
+    
+    <div class="rules">
+        <h2>How to Play</h2>
+        <p><strong>Objective:</strong> Be the first to place five of your stones in a row (horizontally, vertically, or diagonally).</p>
+        <p><strong>Rules:</strong></p>
+        <ul>
+            <li>Black plays first, then players alternate turns.</li>
+            <li>Place your stone by clicking on an empty intersection.</li>
+            <li>The first player to get five stones in a row wins.</li>
+        </ul>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const boardSize = 15;
+            const board = document.getElementById('board');
+            const playerTurnDisplay = document.getElementById('player-turn');
+            const restartBtn = document.getElementById('restart-btn');
+            
+            let gameBoard = Array(boardSize).fill().map(() => Array(boardSize).fill(null));
+            let currentPlayer = 'black';
+            let gameOver = false;
+            
+            // Create the game board
+            function createBoard() {
+                board.innerHTML = '';
+                for (let row = 0; row < boardSize; row++) {
+                    for (let col = 0; col < boardSize; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        cell.addEventListener('click', () => handleCellClick(row, col));
+                        board.appendChild(cell);
+                    }
+                }
+            }
+            
+            // Handle cell click
+            function handleCellClick(row, col) {
+                if (gameOver || gameBoard[row][col] !== null) return;
+                
+                gameBoard[row][col] = currentPlayer;
+                updateBoard();
+                
+                if (checkWin(row, col)) {
+                    playerTurnDisplay.textContent = `${currentPlayer === 'black' ? 'Black' : 'White'} wins!`;
+                    gameOver = true;
+                    return;
+                }
+                
+                currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+                playerTurnDisplay.textContent = `${currentPlayer === 'black' ? 'Black' : 'White'}'s turn`;
+            }
+            
+            // Update the visual board
+            function updateBoard() {
+                const cells = document.querySelectorAll('.cell');
+                cells.forEach(cell => {
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    cell.innerHTML = '';
+                    
+                    if (gameBoard[row][col] === 'black') {
+                        const piece = document.createElement('div');
+                        piece.className = 'black-piece';
+                        cell.appendChild(piece);
+                    } else if (gameBoard[row][col] === 'white') {
+                        const piece = document.createElement('div');
+                        piece.className = 'white-piece';
+                        cell.appendChild(piece);
+                    }
+                });
+            }
+            
+            // Check for a win
+            function checkWin(row, col) {
+                const directions = [
+                    [0, 1],   // horizontal
+                    [1, 0],   // vertical
+                    [1, 1],   // diagonal down-right
+                    [1, -1]   // diagonal down-left
+                ];
+                
+                for (const [dx, dy] of directions) {
+                    let count = 1;
+                    
+                    // Check in positive direction
+                    for (let i = 1; i < 5; i++) {
+                        const newRow = row + i * dx;
+                        const newCol = col + i * dy;
+                        
+                        if (newRow < 0 || newRow >= boardSize || newCol < 0 || newCol >= boardSize || 
+                            gameBoard[newRow][newCol] !== currentPlayer) {
+                            break;
+                        }
+                        count++;
+                    }
+                    
+                    // Check in negative direction
+                    for (let i = 1; i < 5; i++) {
+                        const newRow = row - i * dx;
+                        const newCol = col - i * dy;
+                        
+                        if (newRow < 0 || newRow >= boardSize || newCol < 0 || newCol >= boardSize || 
+                            gameBoard[newRow][newCol] !== currentPlayer) {
+                            break;
+                        }
+                        count++;
+                    }
+                    
+                    if (count >= 5) return true;
+                }
+                
+                return false;
+            }
+            
+            // Reset the game
+            function resetGame() {
+                gameBoard = Array(boardSize).fill().map(() => Array(boardSize).fill(null));
+                currentPlayer = 'black';
+                gameOver = false;
+                playerTurnDisplay.textContent = "Black's turn";
+                createBoard();
+            }
+            
+            // Event listeners
+            restartBtn.addEventListener('click', resetGame);
+            
+            // Initialize the game
+            createBoard();
+        });
+    </script>
+</body>
+</html>
